@@ -42,7 +42,7 @@ func (s *SimpleSuite) TestSimpleDefaultConfig(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cmd.Process.Kill()
 
-	time.Sleep(500 * time.Millisecond)
+	s.waitForTraefik(c, 80, 10*time.Second)
 	// TODO validate : run on 80
 	resp, err := http.Get("http://127.0.0.1/")
 

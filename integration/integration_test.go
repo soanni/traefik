@@ -4,11 +4,13 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"text/template"
+	"time"
 
 	"github.com/docker/libcompose/docker"
 	"github.com/docker/libcompose/project"
@@ -122,6 +124,38 @@ func (s *BaseSuite) traefikCmd(c *check.C, args ...string) (*exec.Cmd, string) {
 	cmd, out, err := utils.RunCommand(traefikBinary, args...)
 	c.Assert(err, checker.IsNil, check.Commentf("Fail to run %s with %v", traefikBinary, args))
 	return cmd, out
+}
+
+func (s *BaseSuite) waitForTraefik(c *check.C, port int, timeout time.Duration) {
+	// Wait for TCP on specifed port
+	connected := make(chan bool)
+	errCh := make(chan error)
+
+	go func(ch chan bool, errCh chan error) {
+		for {
+			conn, _ := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if conn != nil {
+				// try to read the data
+				data := make([]byte, 128)
+				_, err := conn.Read(data)
+				if err != nil {
+					errCh <- err
+					return
+				}
+				ch <- true
+				return
+			}
+		}
+	}(connected, errCh)
+
+	select {
+	case <-connected:
+		// Do nothing and let go
+	case err := <-errCh:
+		c.Fatalf("Error while waiting for traefik to start: %v", err)
+	case <-time.After(timeout):
+		c.Fatalf("Timeout waiting for traefik to start.")
+	}
 }
 
 func (s *BaseSuite) adaptFileForHost(c *check.C, path string) string {
