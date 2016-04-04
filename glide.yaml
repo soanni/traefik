@@ -173,3 +173,4 @@ import:
     - nat
   - package: github.com/docker/go-units
   - package: github.com/mailgun/multibuf
+  - package: github.com/pkg/profile

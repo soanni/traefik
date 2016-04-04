@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	fmtlog "log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -13,9 +14,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/containous/traefik/middlewares"
 	"github.com/containous/traefik/provider"
+	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"net/http"
 )
 
 var traefikCmd = &cobra.Command{
@@ -178,6 +179,7 @@ func init() {
 }
 
 func run() {
+	p := profile.Start(profile.NoShutdownHook, profile.MemProfile)
 	fmtlog.SetFlags(fmtlog.Lshortfile | fmtlog.LstdFlags)
 
 	// load global configuration
@@ -214,6 +216,7 @@ func run() {
 	log.Debugf("Global configuration loaded %s", string(jsonConf))
 	server := NewServer(*globalConfiguration)
 	server.Start()
+	defer p.Stop()
 	defer server.Close()
 	log.Info("Shutting down")
 }
